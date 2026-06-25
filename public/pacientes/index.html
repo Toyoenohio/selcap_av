@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Pacientes — Emergencia Venezuela</title>
+  <meta name="description" content="Buscador de personas afectadas por el terremoto. Encuentra a tus familiares en centros de atención.">
+  
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            emergency: { 50:'#fef2f2', 100:'#fee2e2', 500:'#dc2626', 600:'#b91c1c', 700:'#991b1b' },
+            medical: { 50:'#eff6ff', 100:'#dbeafe', 500:'#2563eb', 600:'#1d4ed8' }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    body { font-family: system-ui, -apple-system, sans-serif; }
+    .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+    .fade-enter-from, .fade-leave-to { opacity: 0; }
+    .slide-enter-active, .slide-leave-active { transition: all 0.25s ease; }
+    .slide-enter-from { opacity: 0; transform: translateY(10px); }
+    .slide-leave-to { opacity: 0; transform: translateY(-10px); }
+    .list-enter-active, .list-leave-active { transition: all 0.3s ease; }
+    .list-enter-from { opacity: 0; transform: translateX(-20px); }
+    .list-leave-to { opacity: 0; transform: translateX(20px); }
+    @media (prefers-color-scheme: dark) {
+      .dark-aware { background: #0f172a; color: #e2e8f0; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  
+  <div id="app">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+      <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-emergency-500 rounded-full flex items-center justify-center">
+            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+          </div>
+          <div>
+            <h1 class="font-bold text-gray-900 text-lg leading-tight">Registro de Pacientes</h1>
+            <p class="text-xs text-gray-500">Emergencia Venezuela</p>
+          </div>
+        </div>
+        <div class="flex gap-1 bg-gray-100 rounded-lg p-1">
+          <button 
+            @click="tab = 'search'" 
+            :class="tab === 'search' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'"
+            class="px-4 py-2 text-sm font-medium rounded-md transition-all"
+          >🔍 Buscar</button>
+          <button 
+            @click="tab = 'register'" 
+            :class="tab === 'register' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'"
+            class="px-4 py-2 text-sm font-medium rounded-md transition-all"
+          >➕ Registrar</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Search Tab -->
+    <main class="max-w-4xl mx-auto px-4 py-6" v-if="tab === 'search'">
+      <!-- Search Bar -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-4">
+        <div class="flex flex-col sm:flex-row gap-3">
+          <div class="flex-1 relative">
+            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input 
+              v-model="searchQuery"
+              @input="doSearch"
+              type="text" 
+              placeholder="Escribe un nombre o apellido..." 
+              autocomplete="off"
+              autofocus
+              class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent text-lg"
+            >
+          </div>
+          <select 
+            v-model="filterCenter"
+            @change="doSearch"
+            class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:ring-2 focus:ring-medical-500 text-base min-w-[180px]"
+          >
+            <option value="">🏥 Todos los centros</option>
+            <option v-for="c in centers" :key="c" :value="c">{{ c }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Stats & Loading -->
+      <div class="flex items-center justify-between mb-4 px-1">
+        <p class="text-sm text-gray-500">
+          <span v-if="loading" class="inline-flex items-center gap-2">
+            <span class="animate-pulse">⏳</span> Buscando...
+          </span>
+          <span v-else>
+            <strong class="text-gray-900">{{ filteredPatients.length }}</strong> 
+            {{ filteredPatients.length === 1 ? 'paciente encontrado' : 'pacientes encontrados' }}
+            <span v-if="allPatients.length && (searchQuery || filterCenter)">de {{ allPatients.length }} registrados</span>
+          </span>
+        </p>
+        <button 
+          @click="refreshData" 
+          :disabled="loading"
+          class="text-xs text-medical-600 hover:text-medical-700 font-medium disabled:opacity-50"
+        >🔄 Actualizar</button>
+      </div>
+
+      <!-- Patient List -->
+      <div v-if="!loading && filteredPatients.length === 0 && (searchQuery || filterCenter)" 
+           class="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
+        <div class="text-5xl mb-4">🔍</div>
+        <p class="text-gray-600 font-medium text-lg mb-2">Sin resultados</p>
+        <p class="text-gray-400 text-sm">Intenta con otro nombre, apellido o centro de atención.</p>
+        <button @click="searchQuery=''; filterCenter=''; doSearch()" 
+                class="mt-4 text-medical-600 font-medium text-sm hover:underline">
+          Limpiar filtros
+        </button>
+      </div>
+
+      <div v-else-if="!loading && allPatients.length === 0" 
+           class="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
+        <div class="text-5xl mb-4">📋</div>
+        <p class="text-gray-600 font-medium text-lg mb-2">No hay pacientes registrados aún</p>
+        <p class="text-gray-400 text-sm mb-4">Si tienes información, ve a la pestaña Registrar para añadir pacientes.</p>
+        <button @click="tab='register'" 
+                class="px-6 py-3 bg-emergency-500 text-white font-medium rounded-xl hover:bg-emergency-600 transition-colors">
+          ➕ Registrar paciente
+        </button>
+      </div>
+
+      <div v-else class="flex flex-col gap-3">
+        <TransitionGroup name="list">
+          <div v-for="p in filteredPatients" :key="p.id"
+               class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold text-gray-900 text-lg">{{ p.nombre }} {{ p.apellido }}</span>
+                  <span v-if="p.edad" class="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ p.edad }} años</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
+                  <span v-if="p.cedula" class="inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0"/></svg>
+                    C.I. {{ p.cedula }}
+                  </span>
+                  <span class="inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    {{ p.centro }}
+                  </span>
+                </div>
+              </div>
+              <span class="text-xs text-gray-400 whitespace-nowrap">{{ formatDate(p.created_at) }}</span>
+            </div>
+          </div>
+        </TransitionGroup>
+      </div>
+
+      <!-- Footer note -->
+      <p class="text-center text-xs text-gray-400 mt-8">
+        Si encuentras a tu familiar, por favor ayuda a mantener esta lista actualizada.
+      </p>
+    </main>
+
+    <!-- Register Tab -->
+    <main class="max-w-lg mx-auto px-4 py-6" v-if="tab === 'register'">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-1">Registrar Paciente</h2>
+        <p class="text-sm text-gray-500 mb-6">Añade la información de una persona que se encuentre en un centro de atención.</p>
+        
+        <form @submit.prevent="submitPatient" class="flex flex-col gap-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+              <input v-model="form.nombre" required type="text" placeholder="Ej: María"
+                     class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Apellido *</label>
+              <input v-model="form.apellido" required type="text" placeholder="Ej: González"
+                     class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent">
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Edad</label>
+              <input v-model.number="form.edad" type="number" min="0" max="120" placeholder="Ej: 34"
+                     class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Cédula (opcional)</label>
+              <input v-model="form.cedula" type="text" placeholder="Ej: V-12345678"
+                     class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Centro de Atención *</label>
+            <div class="relative">
+              <input 
+                v-model="form.centro" 
+                required 
+                type="text" 
+                placeholder="Ej: Hospital Central de Maracay"
+                list="centros-list"
+                class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent"
+              >
+              <datalist id="centros-list">
+                <option v-for="c in centers" :key="c" :value="c">
+              </datalist>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">Escribe el nombre completo del hospital, clínica o centro.</p>
+          </div>
+
+          <div v-if="submitError" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+            ⚠️ {{ submitError }}
+          </div>
+
+          <div v-if="submitSuccess" class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm">
+            ✅ Paciente registrado correctamente.
+          </div>
+
+          <button 
+            type="submit"
+            :disabled="submitting"
+            class="w-full py-3.5 bg-emergency-500 text-white font-bold rounded-xl hover:bg-emergency-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-lg mt-2"
+          >
+            <span v-if="submitting" class="inline-flex items-center gap-2">
+              <span class="animate-spin">⏳</span> Registrando...
+            </span>
+            <span v-else>💾 Registrar Paciente</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Recent registrations -->
+      <div class="mt-6" v-if="allPatients.length > 0">
+        <h3 class="text-sm font-medium text-gray-500 mb-3">Últimos registros ({{ Math.min(allPatients.length, 5) }})</h3>
+        <div class="flex flex-col gap-2">
+          <div v-for="p in allPatients.slice(0, 5)" :key="p.id"
+               class="bg-white rounded-lg border border-gray-100 px-4 py-2 text-sm flex justify-between">
+            <span class="font-medium text-gray-700">{{ p.nombre }} {{ p.apellido }}</span>
+            <span class="text-gray-400">{{ p.centro }}</span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Connection Status -->
+    <div v-if="connError" class="fixed bottom-4 left-4 right-4 max-w-lg mx-auto bg-red-600 text-white px-4 py-3 rounded-xl shadow-lg text-sm text-center z-50">
+      ⚠️ Sin conexión a la base de datos. Verifica tu conexión e intenta de nuevo.
+      <button @click="connError=null; refreshData()" class="underline ml-2 font-medium">Reintentar</button>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
+
+    createApp({
+      data() {
+        return {
+          // ═══════ CONFIGURACIÓN ═══════
+          // Reemplaza con tus credenciales de Supabase
+          // Las encuentras en: https://app.supabase.com → tu proyecto → Settings → API
+          supabaseUrl: 'https://TU_PROJECT_ID.supabase.co',
+          supabaseKey: 'TU_ANON_KEY',
+          // ══════════════════════════════
+          
+          tab: 'search',
+          searchQuery: '',
+          filterCenter: '',
+          allPatients: [],
+          loading: true,
+          connError: null,
+          
+          // Form
+          form: { nombre: '', apellido: '', edad: null, cedula: '', centro: '' },
+          submitting: false,
+          submitError: null,
+          submitSuccess: false,
+          
+          supabase: null,
+          searchTimer: null,
+        }
+      },
+      
+      computed: {
+        filteredPatients() {
+          let result = this.allPatients;
+          const q = this.searchQuery.toLowerCase().trim();
+          
+          if (q) {
+            result = result.filter(p => 
+              p.nombre.toLowerCase().includes(q) ||
+              p.apellido.toLowerCase().includes(q) ||
+              (p.cedula && p.cedula.includes(q)) ||
+              `${p.nombre} ${p.apellido}`.toLowerCase().includes(q)
+            );
+          }
+          
+          if (this.filterCenter) {
+            result = result.filter(p => p.centro === this.filterCenter);
+          }
+          
+          return result;
+        },
+        
+        centers() {
+          const c = new Set(this.allPatients.map(p => p.centro).filter(Boolean));
+          return [...c].sort((a, b) => a.localeCompare(b, 'es'));
+        }
+      },
+      
+      methods: {
+        initSupabase() {
+          try {
+            this.supabase = supabase.createClient(this.supabaseUrl, this.supabaseKey);
+            this.refreshData();
+          } catch(e) {
+            this.connError = true;
+            this.loading = false;
+          }
+        },
+        
+        async refreshData() {
+          if (!this.supabase) return;
+          this.loading = true;
+          this.connError = null;
+          
+          try {
+            const { data, error } = await this.supabase
+              .from('pacientes')
+              .select('*')
+              .order('created_at', { ascending: false })
+              .limit(500);
+            
+            if (error) throw error;
+            this.allPatients = data || [];
+          } catch(e) {
+            console.error('Error loading patients:', e);
+            this.connError = true;
+          } finally {
+            this.loading = false;
+          }
+        },
+        
+        doSearch() {
+          // Debounced - already reactive via computed
+          clearTimeout(this.searchTimer);
+          this.searchTimer = setTimeout(() => {
+            // computed property handles filtering reactively
+          }, 50);
+        },
+        
+        async submitPatient() {
+          if (!this.supabase || this.submitting) return;
+          if (!this.form.nombre || !this.form.apellido || !this.form.centro) {
+            this.submitError = 'Nombre, Apellido y Centro son obligatorios.';
+            return;
+          }
+          
+          this.submitting = true;
+          this.submitError = null;
+          this.submitSuccess = false;
+          
+          try {
+            const { error } = await this.supabase.from('pacientes').insert({
+              nombre: this.form.nombre.trim(),
+              apellido: this.form.apellido.trim(),
+              edad: this.form.edad || null,
+              cedula: this.form.cedula?.trim() || null,
+              centro: this.form.centro.trim(),
+            });
+            
+            if (error) throw error;
+            
+            this.submitSuccess = true;
+            this.form = { nombre: '', apellido: '', edad: null, cedula: '', centro: '' };
+            
+            // Refresh list
+            await this.refreshData();
+            
+            setTimeout(() => { this.submitSuccess = false; }, 5000);
+          } catch(e) {
+            console.error('Error submitting patient:', e);
+            this.submitError = 'Error al registrar. Verifica tu conexión e intenta de nuevo.';
+          } finally {
+            this.submitting = false;
+          }
+        },
+        
+        formatDate(dateStr) {
+          if (!dateStr) return '';
+          const d = new Date(dateStr);
+          const now = new Date();
+          const diffMs = now - d;
+          const diffMin = Math.floor(diffMs / 60000);
+          const diffHrs = Math.floor(diffMs / 3600000);
+          
+          if (diffMin < 1) return 'Ahora';
+          if (diffMin < 60) return `Hace ${diffMin} min`;
+          if (diffHrs < 24) return `Hace ${diffHrs}h`;
+          return d.toLocaleDateString('es-VE', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+        }
+      },
+      
+      mounted() {
+        this.initSupabase();
+        // Auto-refresh every 60 seconds
+        setInterval(() => { if (!this.loading) this.refreshData(); }, 60000);
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
