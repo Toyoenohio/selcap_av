@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { AlertCircle } from "lucide-react"
 
-const initialState = {
+const initialState: any = {
   error: "",
   success: false,
   role: "",

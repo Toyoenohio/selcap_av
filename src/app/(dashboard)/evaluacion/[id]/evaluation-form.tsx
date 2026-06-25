@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/Card"
 import { AlertCircle, CheckCircle, XCircle } from "lucide-react"
 import Link from "next/link"
 
-const initialState = {
+const initialState: any = {
   error: "",
   success: false,
   score: 0,

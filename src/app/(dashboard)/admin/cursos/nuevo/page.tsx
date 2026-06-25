@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button"
 import { createCourse } from "@/app/actions/courses"
 import { AlertCircle } from "lucide-react"
 
-const initialState = {
+const initialState: any = {
   error: "",
   success: false,
   courseId: "",
