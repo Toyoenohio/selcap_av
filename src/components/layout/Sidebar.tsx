@@ -16,7 +16,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Menu
+  Menu,
+  Compass
 } from "lucide-react"
 import { logout } from "@/app/actions/auth"
 import { Avatar } from "@/components/ui/Avatar"
@@ -40,6 +41,7 @@ export function Sidebar({ user, isCollapsed, onToggle, isMobileOpen, onMobileClo
   
   const studentNav = [
     { name: "Panel", href: "/panel", icon: LayoutDashboard },
+    { name: "Catálogo", href: "/cursos", icon: Compass },
     { name: "Mis Cursos", href: "/mis-cursos", icon: GraduationCap },
     { name: "Certificados", href: "/certificados", icon: Award },
     { name: "Perfil", href: "/perfil", icon: User },

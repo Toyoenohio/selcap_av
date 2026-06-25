@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 export interface BadgeProps {
-  variant?: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
+  variant?: 'success' | 'danger' | 'warning' | 'info' | 'neutral' | 'primary';
   size?: 'sm' | 'md';
   children: ReactNode;
   className?: string;
@@ -14,6 +14,7 @@ const variantClasses: Record<NonNullable<BadgeProps['variant']>, string> = {
   warning: 'bg-warning-light text-amber-700',
   info: 'bg-info-light text-blue-700',
   neutral: 'bg-neutral-100 text-neutral-600',
+  primary: 'bg-primary-50 text-primary-700',
 };
 
 const dotColors: Record<NonNullable<BadgeProps['variant']>, string> = {
@@ -22,6 +23,7 @@ const dotColors: Record<NonNullable<BadgeProps['variant']>, string> = {
   warning: 'bg-warning',
   info: 'bg-info',
   neutral: 'bg-neutral-400',
+  primary: 'bg-primary-500',
 };
 
 const sizeClasses: Record<NonNullable<BadgeProps['size']>, string> = {
