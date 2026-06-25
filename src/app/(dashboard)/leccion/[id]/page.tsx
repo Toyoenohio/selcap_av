@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/dal"
 import { prisma } from "@/lib/prisma"
 import { notFound, redirect } from "next/navigation"
 import { Button } from "@/components/ui/Button"
-import { CheckCircle, ChevronLeft, ChevronRight, Video } from "lucide-react"
+import { CheckCircle, ChevronLeft, ChevronRight, Video, Award } from "lucide-react"
 import Link from "next/link"
 import { revalidatePath } from "next/cache"
 

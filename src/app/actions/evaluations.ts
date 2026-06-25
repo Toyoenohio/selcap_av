@@ -57,11 +57,16 @@ export async function submitEvaluation(prevState: any, formData: FormData) {
     
     const passed = score >= (course?.passingGrade || 70)
 
+    const attemptCount = await prisma.evaluationAttempt.count({
+      where: { userId: session.userId, evaluationId: evaluation.id }
+    })
+
     // Save attempt
     const attempt = await prisma.evaluationAttempt.create({
       data: {
         userId: session.userId,
         evaluationId: evaluation.id,
+        attemptNumber: attemptCount + 1,
         score,
         passed
       }
@@ -131,7 +136,7 @@ export async function submitEvaluation(prevState: any, formData: FormData) {
               courseId: course.id,
               certificateNumber: certNumber,
               finalGrade,
-              certificateUrl: `/api/certificates/download?id=` // will be built dynamically
+              pdfUrl: `/api/certificates/download?id=` // will be built dynamically
             }
           })
         }

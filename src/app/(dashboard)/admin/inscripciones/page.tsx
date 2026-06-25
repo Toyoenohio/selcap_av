@@ -59,12 +59,12 @@ export default async function AdminEnrollmentsPage() {
                     <div className="text-neutral-500 text-xs font-mono">{enrollment.course.sku}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <Badge variant={enrollment.source === "WOOCOMMERCE" ? "primary" : "neutral"}>
+                    <Badge variant={enrollment.source === "WOOCOMMERCE" ? "info" : "neutral"}>
                       {enrollment.source === "WOOCOMMERCE" ? "Tienda" : "Manual"}
                     </Badge>
                   </td>
                   <td className="px-6 py-4">
-                    <Badge variant={enrollment.status === "COMPLETED" ? "success" : enrollment.status === "ACTIVE" ? "primary" : "danger"}>
+                    <Badge variant={enrollment.status === "COMPLETED" ? "success" : enrollment.status === "ACTIVE" ? "info" : "danger"}>
                       {enrollment.status === "COMPLETED" ? "Completado" : enrollment.status === "ACTIVE" ? "Activo" : "Cancelado"}
                     </Badge>
                   </td>

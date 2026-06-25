@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       create: {
         userId: user.id,
         courseId: course.id,
-        source: "N8N_AUTOMATION",
+        source: "WOOCOMMERCE",
         status: "ACTIVE",
       },
     })

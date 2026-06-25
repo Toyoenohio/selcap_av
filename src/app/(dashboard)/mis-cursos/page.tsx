@@ -85,7 +85,7 @@ export default async function MyCoursesPage() {
                     {course.status === "COMPLETED" ? (
                       <Badge variant="success">Completado</Badge>
                     ) : course.progress > 0 ? (
-                      <Badge variant="primary">En progreso</Badge>
+                      <Badge variant="info">En progreso</Badge>
                     ) : (
                       <Badge variant="neutral">No iniciado</Badge>
                     )}
@@ -113,7 +113,7 @@ export default async function MyCoursesPage() {
                       </span>
                       <span className="font-medium text-neutral-900">{course.progress}%</span>
                     </div>
-                    <ProgressBar progress={course.progress} variant={course.status === "COMPLETED" ? "success" : "primary"} />
+                    <ProgressBar value={course.progress} variant={course.status === "COMPLETED" ? "success" : "primary"} />
                   </div>
                 </div>
               </Card>

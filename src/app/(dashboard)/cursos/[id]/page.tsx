@@ -113,7 +113,7 @@ export default async function CourseOverviewPage({ params }: { params: Promise<{
               <span className="text-neutral-700">Tu progreso</span>
               <span className="text-primary-600">{progress}%</span>
             </div>
-            <ProgressBar progress={progress} className="h-3" />
+            <ProgressBar value={progress} className="h-3" />
             <p className="text-sm text-neutral-500 mt-2">
               Has completado {completedItems} de {totalItems} actividades.
             </p>
@@ -121,7 +121,7 @@ export default async function CourseOverviewPage({ params }: { params: Promise<{
           <div className="shrink-0 w-full md:w-auto">
             {progress === 100 ? (
               <Link href="/certificados">
-                <Button variant="success" className="w-full md:w-auto flex items-center gap-2" size="lg">
+                <Button variant="primary" className="w-full md:w-auto flex items-center gap-2" size="lg">
                   <Award className="w-5 h-5" /> Ver Certificado
                 </Button>
               </Link>

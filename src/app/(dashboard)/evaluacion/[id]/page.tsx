@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation"
 import { EvaluationForm } from "./evaluation-form"
 import { ChevronLeft } from "lucide-react"
 import Link from "next/link"
+import { Button } from "@/components/ui/Button"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
@@ -61,7 +62,7 @@ export default async function EvaluationPage({ params }: { params: Promise<{ id:
       userId: session.userId,
       evaluationId: evaluation.id
     },
-    orderBy: { attemptedAt: "desc" }
+    orderBy: { startedAt: "desc" }
   })
 
   const hasPassed = pastAttempts.some(a => a.passed)

@@ -28,7 +28,7 @@ export function ConfirmDialog({
   isLoading = false,
 }: ConfirmDialogProps) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
+    <Modal open={isOpen} onClose={onClose} title={title} size="sm">
       <div className="mt-2">
         {description && (
           <p className="text-sm text-neutral-500">{description}</p>

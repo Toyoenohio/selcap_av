@@ -147,7 +147,7 @@ export default async function StudentPanelPage() {
                         </span>
                         <span className="font-medium text-neutral-900">{course.progress}%</span>
                       </div>
-                      <ProgressBar progress={course.progress} />
+                      <ProgressBar value={course.progress} />
                     </div>
                   </div>
                 </Card>
