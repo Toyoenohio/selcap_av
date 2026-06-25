@@ -7,6 +7,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
+  isLoading?: boolean;
   fullWidth?: boolean;
 }
 
@@ -35,6 +36,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variant = 'primary',
       size = 'md',
       loading = false,
+      isLoading = false,
       fullWidth = false,
       disabled,
       children,
@@ -43,7 +45,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) => {
-    const isDisabled = disabled || loading;
+    const isActuallyLoading = loading || isLoading;
+    const isDisabled = disabled || isActuallyLoading;
 
     return (
       <button
@@ -59,10 +62,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           ${fullWidth ? 'w-full' : ''}
           ${className}
         `}
-        aria-busy={loading}
+        aria-busy={isActuallyLoading}
         {...props}
       >
-        {loading && (
+        {isActuallyLoading && (
           <LoadingSpinner
             size="sm"
             className={variant === 'primary' || variant === 'danger' ? 'text-white' : 'text-primary-500'}
