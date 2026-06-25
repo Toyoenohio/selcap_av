@@ -1,0 +1,299 @@
+// Aula Virtual - Prisma Schema
+// LMS completo con integración WooCommerce
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum EnrollmentSource {
+  MANUAL
+  WOOCOMMERCE
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  SUSPENDED
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+}
+
+// ─── User ────────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  firstName     String   @map("first_name")
+  lastName      String   @map("last_name")
+  role          UserRole @default(STUDENT)
+  isActive      Boolean  @default(true) @map("is_active")
+  avatarUrl     String?  @map("avatar_url")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  taughtCourses      Course[]            @relation("CourseTeacher")
+  enrollments        Enrollment[]
+  lessonProgress     LessonProgress[]
+  evaluationAttempts EvaluationAttempt[]
+  certificates       Certificate[]
+  passwordResets     PasswordReset[]
+
+  @@map("users")
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}
+
+// ─── Course Structure ────────────────────────────────────
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  courses Course[]
+
+  @@map("categories")
+}
+
+model Course {
+  id           String       @id @default(cuid())
+  sku          String       @unique
+  title        String
+  description  String?
+  thumbnailUrl String?      @map("thumbnail_url")
+  categoryId   String?      @map("category_id")
+  teacherId    String?      @map("teacher_id")
+  isSequential Boolean      @default(false) @map("is_sequential")
+  passingGrade Int          @default(70) @map("passing_grade")
+  status       CourseStatus @default(DRAFT)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  category             Category?             @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  teacher              User?                 @relation("CourseTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  sections             Section[]
+  enrollments          Enrollment[]
+  certificates         Certificate[]
+  certificateTemplates CertificateTemplate[]
+
+  @@map("courses")
+}
+
+model Section {
+  id          String @id @default(cuid())
+  courseId     String @map("course_id")
+  title       String
+  description String?
+  sortOrder   Int    @default(0) @map("sort_order")
+
+  // Relations
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  evaluations Evaluation[]
+
+  @@map("sections")
+}
+
+model Lesson {
+  id          String @id @default(cuid())
+  sectionId   String @map("section_id")
+  title       String
+  contentHtml String @default("") @map("content_html")
+  videoUrl    String? @map("video_url")
+  sortOrder   Int    @default(0) @map("sort_order")
+
+  // Relations
+  section     Section            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  attachments LessonAttachment[]
+  progress    LessonProgress[]
+
+  @@map("lessons")
+}
+
+model LessonAttachment {
+  id       String @id @default(cuid())
+  lessonId String @map("lesson_id")
+  fileName String @map("file_name")
+  fileUrl  String @map("file_url")
+  fileType String @map("file_type")
+  fileSize Int    @map("file_size")
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@map("lesson_attachments")
+}
+
+// ─── Evaluations ─────────────────────────────────────────
+
+model Evaluation {
+  id          String @id @default(cuid())
+  sectionId   String @map("section_id")
+  title       String
+  description String?
+  maxAttempts Int    @default(3) @map("max_attempts")
+  sortOrder   Int    @default(0) @map("sort_order")
+
+  // Relations
+  section   Section             @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  questions Question[]
+  attempts  EvaluationAttempt[]
+
+  @@map("evaluations")
+}
+
+model Question {
+  id           String       @id @default(cuid())
+  evaluationId String       @map("evaluation_id")
+  text         String
+  type         QuestionType
+  points       Int          @default(1)
+  sortOrder    Int          @default(0) @map("sort_order")
+
+  // Relations
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  answers    Answer[]
+
+  @@map("questions")
+}
+
+model Answer {
+  id         String  @id @default(cuid())
+  questionId String  @map("question_id")
+  text       String
+  isCorrect  Boolean @default(false) @map("is_correct")
+  sortOrder  Int     @default(0) @map("sort_order")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("answers")
+}
+
+// ─── Enrollment & Progress ───────────────────────────────
+
+model Enrollment {
+  id         String           @id @default(cuid())
+  userId     String           @map("user_id")
+  courseId    String           @map("course_id")
+  wooOrderId String?          @map("woo_order_id")
+  source     EnrollmentSource @default(MANUAL)
+  status     EnrollmentStatus @default(ACTIVE)
+  enrolledAt DateTime         @default(now()) @map("enrolled_at")
+  completedAt DateTime?       @map("completed_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  lessonId    String    @map("lesson_id")
+  completed   Boolean   @default(false)
+  completedAt DateTime? @map("completed_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("lesson_progress")
+}
+
+model EvaluationAttempt {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  evaluationId    String   @map("evaluation_id")
+  attemptNumber   Int      @map("attempt_number")
+  score           Float    @default(0)
+  passed          Boolean  @default(false)
+  answersSnapshot Json?    @map("answers_snapshot")
+  startedAt       DateTime @default(now()) @map("started_at")
+  submittedAt     DateTime? @map("submitted_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@map("evaluation_attempts")
+}
+
+// ─── Certificates ────────────────────────────────────────
+
+model Certificate {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  courseId           String   @map("course_id")
+  certificateNumber String   @unique @map("certificate_number")
+  finalGrade        Float    @map("final_grade")
+  pdfUrl            String?  @map("pdf_url")
+  issuedAt          DateTime @default(now()) @map("issued_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("certificates")
+}
+
+model CertificateTemplate {
+  id                 String  @id @default(cuid())
+  courseId            String? @map("course_id")
+  name               String
+  backgroundImageUrl String  @map("background_image_url")
+  textFields         Json    @default("[]") @map("text_fields")
+
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@map("certificate_templates")
+}
+
+// ─── System Configuration ────────────────────────────────
+
+model SystemConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+
+  @@map("system_config")
+}
