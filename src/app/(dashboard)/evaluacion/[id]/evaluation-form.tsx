@@ -17,7 +17,7 @@ const initialState = {
 
 export function EvaluationForm({ evaluation, courseId }: { evaluation: any, courseId: string }) {
   const router = useRouter()
-  const [state, action, pending] = useActionState(submitEvaluation, initialState)
+  const [state, action, pending] = useActionState(submitEvaluation as any, initialState)
 
   // If successfully submitted, show results
   if (state?.success) {

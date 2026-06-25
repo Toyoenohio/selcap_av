@@ -16,7 +16,7 @@ const initialState = {
 
 export default function RegisterForm() {
   const router = useRouter()
-  const [state, action, pending] = useActionState(register, initialState)
+  const [state, action, pending] = useActionState(register as any, initialState)
 
   useEffect(() => {
     if (state?.success) {

@@ -17,7 +17,7 @@ const initialState = {
 
 export default function NewCoursePage() {
   const router = useRouter()
-  const [state, action, pending] = useActionState(createCourse, initialState)
+  const [state, action, pending] = useActionState(createCourse as any, initialState)
 
   useEffect(() => {
     if (state?.success && state.courseId) {

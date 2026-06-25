@@ -18,7 +18,7 @@ const initialState = {
 export default function LoginForm() {
   const router = useRouter()
   // Ensure we cast to any for React 19 useActionState compatibility if needed, though it should be typed properly in a real project
-  const [state, action, pending] = useActionState(login, initialState)
+  const [state, action, pending] = useActionState(login as any, initialState)
 
   useEffect(() => {
     if (state?.success) {
